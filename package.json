@@ -1,0 +1,14 @@
+{
+  "name": "cloud-analytics-dashboard",
+  "version": "1.0.0",
+  "description": "Cloud Data Analytics Dashboard with Smart Insights & Anomaly Detection",
+  "scripts": {
+    "dev": "docker-compose up --build",
+    "build": "docker-compose build",
+    "start": "docker-compose up",
+    "stop": "docker-compose down"
+  },
+  "keywords": ["analytics", "dashboard", "anomaly-detection", "mongodb", "redis"],
+  "author": "",
+  "license": "MIT"
+}
