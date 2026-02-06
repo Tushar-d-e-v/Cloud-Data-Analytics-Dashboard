@@ -1,109 +1,61 @@
-import React from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Button,
-  Box,
-  Drawer,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  ListItemButton,
-} from '@mui/material';
-import {
-  Dashboard as DashboardIcon,
-  Storage as StorageIcon,
-  Assessment as ReportsIcon,
-  Logout as LogoutIcon,
-} from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
+'use client';
 
-const drawerWidth = 240;
+import { useAuth } from '@/contexts/AuthContext';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
-const Layout: React.FC = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
+export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
+  const pathname = usePathname();
 
-  const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'Datasets', icon: <StorageIcon />, path: '/datasets' },
-    { text: 'Reports', icon: <ReportsIcon />, path: '/reports' },
+  const navigation = [
+    { name: 'Dashboard', href: '/' },
+    { name: 'Datasets', href: '/datasets' },
+    { name: 'Reports', href: '/reports' },
   ];
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
   return (
-    <Box sx={{ display: 'flex' }}>
-      <AppBar
-        position="fixed"
-        sx={{ width: `calc(100% - ${drawerWidth}px)`, ml: `${drawerWidth}px` }}
-      >
-        <Toolbar>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Analytics Dashboard
-          </Typography>
-          <Typography variant="body2" sx={{ mr: 2 }}>
-            {user?.email}
-          </Typography>
-          <Button color="inherit" onClick={handleLogout} startIcon={<LogoutIcon />}>
-            Logout
-          </Button>
-        </Toolbar>
-      </AppBar>
-
-      <Drawer
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: drawerWidth,
-            boxSizing: 'border-box',
-          },
-        }}
-        variant="permanent"
-        anchor="left"
-      >
-        <Toolbar>
-          <Typography variant="h6" noWrap component="div">
-            📊 Analytics
-          </Typography>
-        </Toolbar>
-        <List>
-          {menuItems.map((item) => (
-            <ListItem key={item.text} disablePadding>
-              <ListItemButton
-                selected={location.pathname === item.path}
-                onClick={() => navigate(item.path)}
+    <div className="min-h-screen bg-gray-50">
+      <nav className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex">
+              <div className="flex-shrink-0 flex items-center">
+                <h1 className="text-xl font-bold text-gray-900">📊 Analytics</h1>
+              </div>
+              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+                {navigation.map((item) => (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={`${
+                      pathname === item.href
+                        ? 'border-blue-500 text-gray-900'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-700">{user?.email}</span>
+              <button
+                onClick={logout}
+                className="bg-gray-800 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700"
               >
-                <ListItemIcon>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.text} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-      </Drawer>
-
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          bgcolor: 'background.default',
-          p: 3,
-          width: `calc(100% - ${drawerWidth}px)`,
-        }}
-      >
-        <Toolbar />
-        <Outlet />
-      </Box>
-    </Box>
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="px-4 py-6 sm:px-0">
+          {children}
+        </div>
+      </main>
+    </div>
   );
-};
-
-export default Layout;
+}

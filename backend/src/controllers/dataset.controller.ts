@@ -43,9 +43,19 @@ export const getDatasets = async (req: AuthRequest, res: Response) => {
     const userId = req.user!.id;
     const datasets = await DatasetService.getUserDatasets(userId);
 
+    // Transform datasets to ensure rowCount and columnCount are present
+    const transformedDatasets = datasets.map(dataset => {
+      const datasetObj = dataset.toObject();
+      return {
+        ...datasetObj,
+        rowCount: datasetObj.rowCount || datasetObj.recordCount || 0,
+        columnCount: datasetObj.columnCount || datasetObj.columns?.length || 0
+      };
+    });
+
     res.json({
       success: true,
-      data: { datasets }
+      data: { datasets: transformedDatasets }
     });
 
   } catch (error: any) {
@@ -71,9 +81,17 @@ export const getDataset = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    // Transform dataset to ensure rowCount and columnCount are present
+    const datasetObj = dataset.toObject();
+    const transformedDataset = {
+      ...datasetObj,
+      rowCount: datasetObj.rowCount || datasetObj.recordCount || 0,
+      columnCount: datasetObj.columnCount || datasetObj.columns?.length || 0
+    };
+
     res.json({
       success: true,
-      data: { dataset }
+      data: { dataset: transformedDataset }
     });
 
   } catch (error: any) {

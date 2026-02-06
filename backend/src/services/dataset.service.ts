@@ -47,6 +47,8 @@ export class DatasetService {
         timeColumn,
         metricColumn,
         recordCount: parsedData.recordCount,
+        rowCount: parsedData.recordCount,
+        columnCount: parsedData.columns.length,
         fileSize: file.size
       });
 

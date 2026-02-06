@@ -1,5 +1,7 @@
+'use client';
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authAPI } from '../services/api';
+import { authAPI } from '@/lib/api';
 
 interface User {
   id: string;
@@ -33,15 +35,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
       setToken(storedToken);
-      // Verify token and get user info
       authAPI.getProfile()
         .then(response => {
-          // Backend returns data nested in response.data.data
           setUser(response.data.data.user);
         })
         .catch(() => {
@@ -54,11 +61,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } else {
       setLoading(false);
     }
-  }, []);
+  }, [mounted]);
 
   const login = async (email: string, password: string) => {
     const response = await authAPI.login(email, password);
-    // Backend returns data nested in response.data.data
     const { user: userData, token: userToken } = response.data.data;
     
     setUser(userData);
@@ -68,7 +74,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (email: string, password: string) => {
     const response = await authAPI.register(email, password);
-    // Backend returns data nested in response.data.data
     const { user: userData, token: userToken } = response.data.data;
     
     setUser(userData);
@@ -90,6 +95,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register,
     logout,
   };
+
+  if (!mounted) {
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

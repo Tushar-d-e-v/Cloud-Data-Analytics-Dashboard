@@ -1,6 +1,9 @@
 import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yamljs';
+import path from 'path';
 
 // Routes
 import authRoutes from './routes/auth.routes';
@@ -13,6 +16,9 @@ import errorMiddleware from './middlewares/error.middleware';
 
 const app: Application = express();
 
+// Load Swagger document
+const swaggerDocument = YAML.load(path.join(__dirname, '../swagger.yaml'));
+
 // Security middleware
 app.use(helmet());
 app.use(cors({
@@ -23,8 +29,22 @@ app.use(cors({
 }));
 
 // Body parsing middleware
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+
+// Swagger documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Cloud Analytics Dashboard API',
+  swaggerOptions: {
+    persistAuthorization: true,
+    displayRequestDuration: true,
+    docExpansion: 'none',
+    filter: true,
+    showExtensions: true,
+    showCommonExtensions: true
+  }
+}));
 
 // Health check
 app.get('/health', (req, res) => {

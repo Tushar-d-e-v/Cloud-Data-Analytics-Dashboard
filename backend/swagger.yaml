@@ -1,0 +1,955 @@
+openapi: 3.0.3
+info:
+  title: Cloud Data Analytics Dashboard API
+  version: 1.0.0
+  description: |
+    A comprehensive API for cloud-native data analytics dashboard with smart insights and anomaly detection.
+    
+    ## Features
+    - User authentication with JWT
+    - Dataset upload and management (CSV/JSON)
+    - Advanced MongoDB-powered analytics
+    - Multiple anomaly detection algorithms
+    - Redis-based caching for performance
+    - Interactive visualizations support
+    - AWS S3 integration for file storage
+    
+    ## Authentication
+    Most endpoints require JWT authentication. Include the token in the Authorization header:
+    `Authorization: Bearer <your-jwt-token>`
+    
+  contact:
+    name: Analytics Dashboard API
+    email: support@analytics-dashboard.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5000
+    description: Development server
+  - url: https://api.analytics-dashboard.com
+    description: Production server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+
+  schemas:
+    # Authentication Schemas
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        password:
+          type: string
+          minLength: 6
+          example: "securepassword123"
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        password:
+          type: string
+          example: "securepassword123"
+
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Login successful"
+        token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        lastLogin:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    # Dataset Schemas
+    DatasetUploadRequest:
+      type: object
+      required:
+        - datasetName
+      properties:
+        datasetName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: "January Sales Data"
+        timeColumn:
+          type: string
+          example: "date"
+          description: "Column name containing time/date values"
+        metricColumn:
+          type: string
+          example: "revenue"
+          description: "Column name containing numeric values for analysis"
+
+    Dataset:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "65a1b2c3d4e5f6789abcdef0"
+        userId:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        datasetName:
+          type: string
+          example: "January Sales Data"
+        s3FilePath:
+          type: string
+          example: "s3://analytics-bucket/datasets/sales_jan_2024.csv"
+        uploadedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        columns:
+          type: array
+          items:
+            type: string
+          example: ["date", "revenue", "orders", "region"]
+        status:
+          type: string
+          enum: ["uploaded", "processing", "processed", "error"]
+          example: "processed"
+        timeColumn:
+          type: string
+          example: "date"
+        metricColumn:
+          type: string
+          example: "revenue"
+        recordCount:
+          type: integer
+          example: 365
+        fileSize:
+          type: integer
+          example: 15420
+          description: "File size in bytes"
+
+    # Analytics Schemas
+    AnalyticsRunRequest:
+      type: object
+      required:
+        - datasetId
+        - metric
+      properties:
+        datasetId:
+          type: string
+          example: "65a1b2c3d4e5f6789abcdef0"
+        metric:
+          type: string
+          example: "revenue"
+
+    Summary:
+      type: object
+      properties:
+        mean:
+          type: number
+          format: float
+          example: 24600.50
+        median:
+          type: number
+          format: float
+          example: 24200.00
+        stdDev:
+          type: number
+          format: float
+          example: 1800.25
+        min:
+          type: number
+          format: float
+          example: 8000.00
+        max:
+          type: number
+          format: float
+          example: 89000.00
+        count:
+          type: integer
+          example: 365
+        q1:
+          type: number
+          format: float
+          example: 22500.00
+          description: "First quartile (25th percentile)"
+        q3:
+          type: number
+          format: float
+          example: 26800.00
+          description: "Third quartile (75th percentile)"
+
+    Anomaly:
+      type: object
+      properties:
+        date:
+          type: string
+          example: "2024-01-03"
+        value:
+          type: number
+          format: float
+          example: 89000.00
+        type:
+          type: string
+          enum: ["z-score", "iqr", "isolation-forest"]
+          example: "z-score"
+        severity:
+          type: string
+          enum: ["low", "medium", "high"]
+          example: "high"
+        zscore:
+          type: number
+          format: float
+          example: 4.2
+          description: "Z-score value (only for z-score type anomalies)"
+
+    TimeSeriesPoint:
+      type: object
+      properties:
+        date:
+          type: string
+          example: "2024-01-03"
+        value:
+          type: number
+          format: float
+          example: 89000.00
+
+    Analytics:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "65a1b2c3d4e5f6789abcdef1"
+        datasetId:
+          type: string
+          example: "65a1b2c3d4e5f6789abcdef0"
+        metric:
+          type: string
+          example: "revenue"
+        summary:
+          $ref: '#/components/schemas/Summary'
+        anomalies:
+          type: array
+          items:
+            $ref: '#/components/schemas/Anomaly'
+        timeSeriesData:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeSeriesPoint'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    # Report Schemas
+    ReportGenerateRequest:
+      type: object
+      required:
+        - datasetId
+      properties:
+        datasetId:
+          type: string
+          example: "65a1b2c3d4e5f6789abcdef0"
+        includeCharts:
+          type: boolean
+          example: true
+          default: true
+        format:
+          type: string
+          enum: ["pdf", "json"]
+          example: "pdf"
+          default: "json"
+
+    Insight:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: ["trend", "anomaly", "pattern", "summary"]
+          example: "anomaly"
+        title:
+          type: string
+          example: "High Revenue Spike Detected"
+        description:
+          type: string
+          example: "Revenue on 2024-01-03 was 262% higher than average, likely due to marketing campaign"
+        severity:
+          type: string
+          enum: ["info", "warning", "critical"]
+          example: "warning"
+        value:
+          type: number
+          format: float
+          example: 89000.00
+        date:
+          type: string
+          example: "2024-01-03"
+
+    # Common Response Schemas
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Operation completed successfully"
+        data:
+          type: object
+          description: "Response data (varies by endpoint)"
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "An error occurred"
+        error:
+          type: string
+          example: "Detailed error message"
+        details:
+          type: string
+          example: "Additional error details"
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Validation error"
+        details:
+          type: string
+          example: "Email is required"
+
+security:
+  - bearerAuth: []
+
+paths:
+  # Authentication Endpoints
+  /api/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account with email and password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: Authenticate user and return JWT token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/profile:
+    get:
+      tags:
+        - Authentication
+      summary: Get user profile
+      description: Retrieve current user's profile information
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Dataset Management Endpoints
+  /api/datasets/upload:
+    post:
+      tags:
+        - Datasets
+      summary: Upload a new dataset
+      description: |
+        Upload a CSV or JSON dataset file for analysis. The file will be stored in AWS S3 
+        and metadata will be saved in MongoDB. Supports files up to 50MB.
+        
+        **Supported formats:** CSV, JSON
+        **File size limit:** 50MB
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - datasetName
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: "CSV or JSON file to upload"
+                datasetName:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: "January Sales Data"
+                timeColumn:
+                  type: string
+                  example: "date"
+                  description: "Column name containing time/date values"
+                metricColumn:
+                  type: string
+                  example: "revenue"
+                  description: "Column name containing numeric values for analysis"
+      responses:
+        '200':
+          description: Dataset uploaded successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Dataset'
+        '400':
+          description: Validation error or invalid file format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '413':
+          description: File too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/datasets:
+    get:
+      tags:
+        - Datasets
+      summary: List user datasets
+      description: Retrieve all datasets belonging to the authenticated user
+      parameters:
+        - name: status
+          in: query
+          description: Filter datasets by status
+          schema:
+            type: string
+            enum: ["uploaded", "processing", "processed", "error"]
+        - name: limit
+          in: query
+          description: Number of datasets to return (default: 50)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          description: Number of datasets to skip (default: 0)
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Datasets retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          datasets:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Dataset'
+                          total:
+                            type: integer
+                            example: 25
+                          limit:
+                            type: integer
+                            example: 50
+                          offset:
+                            type: integer
+                            example: 0
+
+  /api/datasets/{datasetId}:
+    get:
+      tags:
+        - Datasets
+      summary: Get dataset details
+      description: Retrieve detailed information about a specific dataset
+      parameters:
+        - name: datasetId
+          in: path
+          required: true
+          description: Dataset ID
+          schema:
+            type: string
+            example: "65a1b2c3d4e5f6789abcdef0"
+      responses:
+        '200':
+          description: Dataset retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Dataset'
+        '404':
+          description: Dataset not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Datasets
+      summary: Delete dataset
+      description: |
+        Delete a dataset and all associated data including:
+        - Dataset metadata
+        - Raw data records
+        - Analytics results
+        - Cached data
+        - S3 files
+      parameters:
+        - name: datasetId
+          in: path
+          required: true
+          description: Dataset ID
+          schema:
+            type: string
+            example: "65a1b2c3d4e5f6789abcdef0"
+      responses:
+        '200':
+          description: Dataset deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Dataset not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/datasets/{datasetId}/reprocess:
+    post:
+      tags:
+        - Datasets
+      summary: Reprocess dataset
+      description: |
+        Reprocess a dataset to regenerate analytics and clear cache.
+        Useful when you want to update analysis parameters or fix processing errors.
+      parameters:
+        - name: datasetId
+          in: path
+          required: true
+          description: Dataset ID
+          schema:
+            type: string
+            example: "65a1b2c3d4e5f6789abcdef0"
+      responses:
+        '200':
+          description: Dataset reprocessing started
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                            example: "processing"
+        '404':
+          description: Dataset not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Analytics Endpoints
+  /api/analytics/run:
+    post:
+      tags:
+        - Analytics
+      summary: Run analytics on dataset
+      description: |
+        Execute analytics pipeline on a dataset to generate:
+        - Summary statistics (mean, median, std dev, etc.)
+        - Anomaly detection using multiple algorithms
+        - Time series data for visualization
+        
+        Results are automatically cached in Redis for fast subsequent access.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalyticsRunRequest'
+      responses:
+        '200':
+          description: Analytics completed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Analytics'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '404':
+          description: Dataset not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/analytics/{datasetId}:
+    get:
+      tags:
+        - Analytics
+      summary: Get analytics results
+      description: |
+        Retrieve cached analytics results for a dataset. If no cache exists,
+        analytics will be computed on-demand.
+      parameters:
+        - name: datasetId
+          in: path
+          required: true
+          description: Dataset ID
+          schema:
+            type: string
+            example: "65a1b2c3d4e5f6789abcdef0"
+        - name: metric
+          in: query
+          description: Specific metric to analyze (if not provided, uses dataset's default metric)
+          schema:
+            type: string
+            example: "revenue"
+        - name: refresh
+          in: query
+          description: Force refresh of cached results
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Analytics results retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Analytics'
+                      cached:
+                        type: boolean
+                        example: true
+                        description: "Whether results were served from cache"
+        '404':
+          description: Dataset not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/analytics/{datasetId}/metrics:
+    get:
+      tags:
+        - Analytics
+      summary: Get available metrics for dataset
+      description: Retrieve list of numeric columns that can be analyzed
+      parameters:
+        - name: datasetId
+          in: path
+          required: true
+          description: Dataset ID
+          schema:
+            type: string
+            example: "65a1b2c3d4e5f6789abcdef0"
+      responses:
+        '200':
+          description: Available metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          metrics:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                column:
+                                  type: string
+                                  example: "revenue"
+                                type:
+                                  type: string
+                                  example: "number"
+                                sampleValues:
+                                  type: array
+                                  items:
+                                    type: number
+                                  example: [24000, 25500, 89000]
+
+  /api/analytics/{datasetId}/cache:
+    delete:
+      tags:
+        - Analytics
+      summary: Invalidate analytics cache
+      description: Clear cached analytics results for a dataset
+      parameters:
+        - name: datasetId
+          in: path
+          required: true
+          description: Dataset ID
+          schema:
+            type: string
+            example: "65a1b2c3d4e5f6789abcdef0"
+      responses:
+        '200':
+          description: Cache invalidated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # Report Endpoints
+  /api/reports/generate:
+    post:
+      tags:
+        - Reports
+      summary: Generate analytics report
+      description: |
+        Generate a comprehensive analytics report including:
+        - Dataset summary
+        - Key insights and findings
+        - Anomaly analysis
+        - Visualizations (optional)
+        
+        Reports can be generated in JSON or PDF format.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportGenerateRequest'
+      responses:
+        '200':
+          description: Report generated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          reportId:
+                            type: string
+                            example: "65a1b2c3d4e5f6789abcdef2"
+                          downloadUrl:
+                            type: string
+                            example: "https://s3.amazonaws.com/reports/report_123.pdf"
+                          format:
+                            type: string
+                            example: "pdf"
+                          generatedAt:
+                            type: string
+                            format: date-time
+                            example: "2024-01-15T10:30:00Z"
+
+  /api/reports/{datasetId}/insights:
+    get:
+      tags:
+        - Reports
+      summary: Get dataset insights
+      description: |
+        Retrieve AI-generated insights and findings for a dataset including:
+        - Trend analysis
+        - Anomaly explanations
+        - Pattern recognition
+        - Business recommendations
+      parameters:
+        - name: datasetId
+          in: path
+          required: true
+          description: Dataset ID
+          schema:
+            type: string
+            example: "65a1b2c3d4e5f6789abcdef0"
+      responses:
+        '200':
+          description: Insights retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          insights:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Insight'
+                          summary:
+                            type: string
+                            example: "Dataset shows strong growth trend with 3 significant anomalies detected"
+
+tags:
+  - name: Authentication
+    description: User registration, login, and profile management
+  - name: Datasets
+    description: Dataset upload, management, and lifecycle operations
+  - name: Analytics
+    description: Statistical analysis, anomaly detection, and insights generation
+  - name: Reports
+    description: Report generation and business insights
+
+externalDocs:
+  description: Find out more about the Analytics Dashboard
+  url: https://github.com/your-org/cloud-analytics-dashboard

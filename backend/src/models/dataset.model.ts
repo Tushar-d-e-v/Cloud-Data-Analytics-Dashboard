@@ -10,6 +10,8 @@ export interface IDataset extends Document {
   timeColumn?: string;
   metricColumn?: string;
   recordCount?: number;
+  rowCount?: number;
+  columnCount?: number;
   fileSize?: number;
 }
 
@@ -27,6 +29,8 @@ const DatasetSchema: Schema = new Schema({
   timeColumn: { type: String },
   metricColumn: { type: String },
   recordCount: { type: Number },
+  rowCount: { type: Number },
+  columnCount: { type: Number },
   fileSize: { type: Number }
 });
 
